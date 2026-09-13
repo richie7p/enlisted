@@ -1,5 +1,9 @@
 # ENLISTED
 
+**繁體中文** | [English](README.en.md)
+
+**[線上展示 / Live Demo](https://birch-civic-bolt-wood.grok.me/)**
+
 **從小兵開始** — 俯視戰術射擊 × 軍旅生涯模擬
 
 從二兵入伍，一路打到少校。階級不是數字，它改的是你能帶幾個人、能用什麼槍、能不能呼叫火力。
