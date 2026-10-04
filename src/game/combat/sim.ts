@@ -570,7 +570,7 @@ function coverSlot(sim: Sim, u: Unit, threat: Unit): { x: number; y: number } | 
   return best;
 }
 
-function thinkAlly(sim: Sim, u: Unit, dt: number) {
+function thinkAlly(sim: Sim, u: Unit, _dt: number) {
   const p = playerOf(sim);
   const leader = sim.ncoId ? sim.units.find((x) => x.id === sim.ncoId) ?? p : p;
   if (u.role === "medic") {

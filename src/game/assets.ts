@@ -48,16 +48,17 @@ export function loadArt(): Promise<GameArt> {
   if (pending) return pending;
   pending = (async () => {
     const names = ["player", "enemy", "ally", "medic", "gunner", "hostage", "muzzle", "impact"] as const;
-    const imgs = await Promise.all(names.map((n) => loadImg(`/game/sprites/${n}.png`)));
+    const spriteImages = Promise.all(names.map((n) => loadImg(`/game/sprites/${n}.png`)));
     const propNames = ["crate", "barrel", "sandbags", "barrier", "ammo", "bush", "tires", "rocks", "tent"];
-    const propImgs = await Promise.all(propNames.map((n) => loadImg(`/game/sprites/prop-${n}.png`)));
-    const [dirt, asphalt, scrub, menu, base] = await Promise.all([
+    const propImages = Promise.all(propNames.map((n) => loadImg(`/game/sprites/prop-${n}.png`)));
+    const backgrounds = Promise.all([
       loadImg("/game/ground/dirt.jpg"),
       loadImg("/game/ground/asphalt.jpg"),
       loadImg("/game/ground/scrub.jpg"),
       loadImg("/game/ui/menu-bg.jpg"),
       loadImg("/game/ui/base-hub.jpg"),
     ]);
+    const [imgs, propImgs, [dirt, asphalt, scrub, menu, base]] = await Promise.all([spriteImages, propImages, backgrounds]);
     const props: Record<string, HTMLImageElement> = {};
     propNames.forEach((n, i) => {
       props[n] = propImgs[i];
@@ -77,6 +78,6 @@ export function loadArt(): Promise<GameArt> {
       base,
     };
     return art;
-  })();
+  })().catch((error) => { pending = null; throw error; });
   return pending;
 }

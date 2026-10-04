@@ -19,6 +19,7 @@
  * Vite picks the values up because `loadEnv` prefix-matches entries already in
  * `process.env`, which is why the merge has to happen before Vite starts.
  */
+import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
@@ -53,11 +54,12 @@ export function parseAppEnv(text) {
 
 /** The app env recorded under `root`, or `{}` when the file is absent. */
 export function readAppEnv(root) {
-  try {
-    return parseAppEnv(readFileSync(join(root, APP_ENV_REL_PATH), "utf8"));
-  } catch {
-    return {};
+  let env = {};
+  for (const relative of ["app-env.json", APP_ENV_REL_PATH]) {
+    try { env = { ...env, ...parseAppEnv(readFileSync(join(root, relative), "utf8")) }; }
+    catch { /* Optional workspace overrides may be absent. */ }
   }
+  return env;
 }
 
 /** File values under the process environment: an explicit override wins. */
@@ -111,7 +113,11 @@ function main(argv) {
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
-  const child = spawn(command, args, { stdio: "inherit", env });
+  // Execute the package CLI with Node: Windows cannot spawn npm's .cmd shim.
+  const cli = command === "vite"
+    ? join(dirname(createRequire(import.meta.url).resolve("vite/package.json")), "bin/vite.js")
+    : null;
+  const child = spawn(cli ? process.execPath : command, cli ? [cli, ...args] : args, { stdio: "inherit", env });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => child.kill(signal));

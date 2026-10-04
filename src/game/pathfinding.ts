@@ -170,8 +170,8 @@ export function resolveWalls(x: number, y: number, r: number, solids: Rect[]) {
     if (!circleRect(px, py, r, b)) continue;
     const nx = Math.max(b.x, Math.min(px, b.x + b.w));
     const ny = Math.max(b.y, Math.min(py, b.y + b.h));
-    let dx = px - nx;
-    let dy = py - ny;
+    const dx = px - nx;
+    const dy = py - ny;
     const d = Math.hypot(dx, dy) || 0.001;
     const overlap = r - d;
     if (overlap > 0) {

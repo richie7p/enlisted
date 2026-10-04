@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { readStored, writeStored } from "./storage";
 import type { Career } from "./types";
 import { rankById } from "./ranks";
 
@@ -7,7 +9,7 @@ export const SAVE_VERSION = 1;
 export function defaultCareer(name = "新兵"): Career {
   return {
     version: SAVE_VERSION,
-    name: name.trim() || "新兵",
+    name: name.trim().slice(0, 100) || "新兵",
     rankId: "private",
     xp: 0,
     merit: 0,
@@ -31,47 +33,37 @@ export function defaultCareer(name = "新兵"): Career {
   };
 }
 
-function migrate(raw: Career): Career {
-  const base = defaultCareer(raw.name);
-  return {
-    ...base,
-    ...raw,
-    version: SAVE_VERSION,
-    settings: { ...base.settings, ...raw.settings },
-    unlockedWeapons: raw.unlockedWeapons?.length ? raw.unlockedWeapons : base.unlockedWeapons,
-    missionCounts: raw.missionCounts ?? {},
-    promotions: raw.promotions?.length ? raw.promotions : base.promotions,
-  };
+const rank = z.enum(["private", "pfc", "specialist", "corporal", "sergeant", "lieutenant", "firstLieutenant", "captain", "major"]);
+const weapon = z.enum(["m4", "mp5", "m870", "m9", "m249", "m110", "m24", "at4", "m320", "scar", "javelin"]);
+const nonnegative = z.number().finite().nonnegative();
+const schema = z.object({
+  version: z.number().int().min(0).max(SAVE_VERSION), name: z.string().min(1).max(100), rankId: rank,
+  xp: nonnegative, merit: nonnegative, discipline: z.number().min(0).max(100),
+  specialty: z.enum(["rifleman", "medic", "auto"]), primary: weapon, secondary: weapon,
+  unlockedWeapons: z.array(weapon), missionsCompleted: nonnegative, missionsFailed: nonnegative,
+  kills: nonnegative, teammatesRescued: nonnegative, civiliansKilled: nonnegative,
+  medals: z.array(z.string()), promotions: z.array(z.object({ rankId: rank, at: nonnegative })),
+  startedAt: nonnegative, playSeconds: nonnegative, difficulty: z.enum(["recruit", "regular", "veteran", "hardcore"]),
+  settings: z.object({ sfx: z.number().min(0).max(1), music: z.number().min(0).max(1), shake: z.boolean() }),
+  missionCounts: z.record(z.string(), nonnegative),
+});
+export function parseCareer(text: string): Career {
+  const raw: unknown = JSON.parse(text);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !("name" in raw)) throw new Error("Invalid career");
+  const data = raw as Partial<Career>;
+  const base = defaultCareer();
+  const validated = schema.parse({ ...base, ...data, settings: { ...base.settings, ...data.settings } });
+  return syncUnlocks({ ...validated, version: SAVE_VERSION });
 }
-
 export function loadCareer(): Career | null {
-  try {
-    const txt = localStorage.getItem(SAVE_KEY);
-    if (!txt) return null;
-    const parsed = JSON.parse(txt) as Career;
-    if (!parsed || typeof parsed !== "object") return null;
-    return migrate(parsed);
-  } catch {
-    return null;
-  }
+  return readStored(SAVE_KEY, SAVE_KEY + ".bak", parseCareer);
 }
-
-export function saveCareer(career: Career): void {
-  try {
-    const prev = localStorage.getItem(SAVE_KEY);
-    if (prev) localStorage.setItem(SAVE_KEY + ".bak", prev);
-    localStorage.setItem(SAVE_KEY, JSON.stringify(career));
-  } catch {
-    // private mode / quota
-  }
+export function saveCareer(career: Career): boolean {
+  return writeStored(SAVE_KEY, SAVE_KEY + ".bak", career, parseCareer);
 }
-
 export function clearCareer(): void {
-  try {
-    localStorage.removeItem(SAVE_KEY);
-  } catch {
-    /* ignore */
-  }
+  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_KEY + ".bak"); }
+  catch { /* Storage may be unavailable. */ }
 }
 
 export function syncUnlocks(career: Career): Career {
