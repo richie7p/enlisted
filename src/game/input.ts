@@ -65,15 +65,17 @@ export class Input {
   consumeMoveOrder: { x: number; y: number } | null = null;
   consumeSupport: { x: number; y: number } | null = null;
   edge = new Set<string>();
+  pendingEdges = new Set<string>();
   prevKeys = new Set<string>();
 
   attach(el: HTMLElement) {
     const kd = (e: KeyboardEvent) => {
       if (GAME_KEYS.has(e.code)) e.preventDefault();
+      if (!e.repeat) this.pendingEdges.add(e.code);
       this.keys.add(e.code);
     };
     const ku = (e: KeyboardEvent) => this.keys.delete(e.code);
-    const blur = () => this.keys.clear();
+    const blur = () => { this.keys.clear(); this.pendingEdges.clear(); };
     const pd = (e: PointerEvent) => {
       if (e.button === 2) {
         this.pointer.right = true;
@@ -186,7 +188,8 @@ export class Input {
 
   sample(): GameActions {
     const keys = new Set([...this.keys, ...this.injected]);
-    this.edge = new Set([...keys].filter((k) => !this.prevKeys.has(k)));
+    this.edge = new Set([...this.pendingEdges, ...[...keys].filter((k) => !this.prevKeys.has(k))]);
+    this.pendingEdges.clear();
     this.prevKeys = new Set(keys);
 
     let mx = 0;

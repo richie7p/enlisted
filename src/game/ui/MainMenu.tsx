@@ -1,3 +1,5 @@
+import { SaveTools } from "../save-tools";
+import { parseCareer, saveCareer } from "../save";
 import { useEffect, useState } from "react";
 import { loadArt } from "../assets";
 import { startMusic, unlockAudio } from "../audio";
@@ -12,7 +14,7 @@ export function MainMenu() {
   const [bg, setBg] = useState<string>("/game/ui/menu-bg.jpg");
 
   useEffect(() => {
-    void loadArt();
+    void loadArt().catch(() => { /* CombatView displays a retryable loading error. */ });
     setBg("/game/ui/menu-bg.jpg");
   }, []);
 
@@ -143,6 +145,7 @@ export function Settings() {
     <div className="flex min-h-dvh items-center justify-center bg-ink p-5">
       <Panel className="w-full max-w-md p-6">
         <h2 className="font-display text-3xl tracking-[0.14em] text-khaki">SETTINGS</h2>
+        <SaveTools value={career} parse={parseCareer} filename="enlisted-career.json" restore={(next) => { if (!saveCareer(next)) return false; useGame.setState({ career: next }); return true; }} />
         <label className="mt-5 block text-xs text-muted">音效 {Math.round(career.settings.sfx * 100)}</label>
         <input
           type="range"

@@ -20,6 +20,7 @@ export function CombatView() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [art, setArt] = useState<GameArt | null>(null);
+  const [assetError, setAssetError] = useState(false);
   const [paused, setPaused] = useState(false);
   const [readyTick, setReadyTick] = useState(0);
   const [hud, setHud] = useState(0);
@@ -36,7 +37,7 @@ export function CombatView() {
     let live = true;
     void loadArt().then((a) => {
       if (live) setArt(a);
-    });
+    }).catch(() => { if (live) setAssetError(true); });
     return () => {
       live = false;
     };
@@ -210,6 +211,9 @@ export function CombatView() {
       style={{ touchAction: "none" }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" />
+      {!art && <div role="status" className="absolute inset-0 z-20 flex items-center justify-center bg-ink p-5 text-khaki">
+        {assetError ? <button onClick={() => setScreen("base")}>載入失敗，返回基地重試</button> : "載入戰場…"}
+      </div>}
       {sim && <CombatHud sim={sim} tick={hud} />}
       {paused && (
         <PauseMenu

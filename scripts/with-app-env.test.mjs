@@ -117,7 +117,7 @@ test("the CLI still runs when invoked through a symlinked path", async () => {
   // node realpaths import.meta.url but not process.argv[1], so a raw comparison
   // turns the wrapper into a no-op that exits 0 without starting anything.
   const link = join(mkdtempSync(join(tmpdir(), "app-env-link-")), "scripts");
-  symlinkSync(join(projectRoot(), "scripts"), link);
+  symlinkSync(join(projectRoot(), "scripts"), link, process.platform === "win32" ? "junction" : "dir");
   const { stdout } = await execFileAsync(process.execPath, [
     join(link, "with-app-env.mjs"),
     process.execPath,
@@ -125,4 +125,16 @@ test("the CLI still runs when invoked through a symlinked path", async () => {
     PRINT_FLAG,
   ]);
   assert.equal(stdout, "false");
+});
+
+test("the local Vite CLI runs through the official wrapper", async () => {
+  const { stdout } = await execFileAsync(process.execPath, [WRAPPER, "vite", "--version"]);
+  assert.match(stdout, /vite\//);
+});
+
+test("tracked app environment is overridden by workspace and then process values", () => {
+ const root = makeWorkspace('{"VITE_AUTH_ENABLED":"true"}');
+ writeFileSync(join(root, "app-env.json"), '{"VITE_AUTH_ENABLED":"false","VITE_LABEL":"game"}');
+ assert.deepEqual(readAppEnv(root), { VITE_AUTH_ENABLED: "true", VITE_LABEL: "game" });
+ assert.equal(mergeAppEnv(readAppEnv(root), { VITE_AUTH_ENABLED: "false" }).VITE_AUTH_ENABLED, "false");
 });

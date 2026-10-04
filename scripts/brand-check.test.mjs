@@ -303,7 +303,9 @@ test("cli: a non-game with a compliant card passes", () => {
 
 // --- the prompts are the only enforcement here, so pin them to the code ---
 
-const readDoc = (rel) => readFileSync(join(TEMPLATE_ROOT, rel), "utf8");
+// This standalone repository keeps the brand-authoring contract in docs, rather
+// than depending on private authoring-tool installation files.
+const readDoc = (_rel) => readFileSync(join(TEMPLATE_ROOT, "docs/BRAND-CHECK.md"), "utf8");
 
 test("SKILL.md and AGENTS.md name the marker path and bound this script uses", () => {
   // Prose wraps, so the minute count may straddle a line break.

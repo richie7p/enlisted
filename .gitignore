@@ -17,3 +17,6 @@ artifacts/
 screenshots/
 attachments/
 tmp/
+
+playwright-report/
+test-results/

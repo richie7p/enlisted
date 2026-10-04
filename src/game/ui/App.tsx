@@ -15,7 +15,7 @@ export function GameApp() {
   const career = useGame((s) => s.career);
 
   useEffect(() => {
-    void loadArt();
+    void loadArt().catch(() => { /* CombatView displays a retryable loading error. */ });
     const c = loadCareer();
     if (c) useGame.setState({ career: c });
   }, []);
